@@ -1,0 +1,211 @@
+<html><head>
+  <script type="text/javascript" src="jquery-2.1.3.js"></script>
+  <script type="text/javascript">
+
+	function handleClick(chbox){
+		$("#div1").html("check box event");
+	}
+	var terminalText= new Array("");
+	var eventSource = new EventSource("geotom.py/geotomEvent");
+	
+	function logMsg(msg){
+		if(terminalText.length>15){
+			terminalText.shift();
+		}
+		terminalText.push(msg+'<br>');
+		var txt='';
+		terminalText.forEach(function(entry) {
+			txt=entry+txt;
+		});
+		$("#msgDiv").html(txt); 
+	}
+	
+	eventSource.addEventListener('data', function(event) {
+		logMsg(event.data);
+		var obj = JSON.parse(event.data); 
+		if(obj.type=="voltage"){
+			logMsg("Voltage="+obj.voltage.toFixed(2)+"V");
+			$("#volt").html(obj.voltage.toFixed(2)+"V");
+		}
+		if(obj.type=="mes"){
+			[elA,elM,elN,elB]=obj.electrodes;
+			if(obj.rho){
+				document.getElementById("el"+elA+"-"+elM+"-"+elN+"-"+elB).setAttribute('fill','hsl('+((obj.rho*240)/56000)+',100%,50%)');
+			}
+			else{
+				$("#einzSpan").html((obj.voltage*1000).toFixed(2)+"");
+				$("#einzSd").html(obj.sd.toFixed(2)+"");
+			}
+		}
+		if(obj.type=="error"){
+			alert(obj.msg);
+		}
+		
+	}, false);
+
+	function sendCmd(cmd){
+		$.ajax({
+        type: "POST",
+        url: "geotom.py/mesureVoltage",
+        dataType: "text",
+		data: {func:JSON.stringify(cmd)},
+        error: function(request, error) { alert(error); }
+      });
+	}
+	
+	$(document).ready(function() {
+		$("#msgDiv").html("no message");
+	});
+
+	function singleMesure(){
+		elA=parseInt(document.getElementById('elA').value);
+		elM=parseInt(document.getElementById('elM').value);
+		elN=parseInt(document.getElementById('elN').value);
+		elB=parseInt(document.getElementById('elB').value);
+		current=parseInt(document.getElementById('current').selectedIndex);
+		freq=parseInt(document.getElementById('freq').selectedIndex);
+		
+		sendCmd({cmd: "makeMesure", param: {electrodes:[elA,elM,elN,elB],current:current,freq:freq}})
+	}
+	
+	function wennerMesure(){
+		
+		dist=parseInt(document.getElementById('dist').value);
+		levelMin=parseInt(document.getElementById('minLevel').value);
+		levelMax=parseInt(document.getElementById('maxLevel').value);
+		elCount=parseInt(document.getElementById('elCount').value);
+		sendCmd({cmd: "addWenner", param: {elCount:elCount,levelMin:levelMin,levelMax:levelMax,dist:dist,"currentAjust":1}})
+		sendCmd({cmd: "measureList", param: {}})
+	}
+	
+	function mesureVoltage(){
+		sendCmd({cmd: "mesureVoltage", param: {}})
+	}
+	
+	function saveWenner(){
+		file="/var/www/html/mes/"+document.getElementById('file').value;
+		sendCmd({cmd: "saveMesures", param: {fileName:file}})
+	}
+	
+	function cmdWithoutParam(cmd){
+		sendCmd({cmd: cmd, param: {}})
+	}
+	
+	function drawWenner(){
+		var htmlCode="";
+		levelMin=parseInt(document.getElementById('minLevel').value);
+		levelMax=parseInt(document.getElementById('maxLevel').value);
+		elCount=parseInt(document.getElementById('elCount').value);
+		absLevelMax = ((elCount - 4) / 3) + 1;
+		if (levelMax == -1) {
+			levelMax = absLevelMax;
+		}
+		htmlCode+="<svg width=\""+((elCount*16)+100)+"\" height=\""+((levelMax*16)+40)+"\">";
+		for (level = 1; level <= levelMax; level++) {
+			color='black';
+			if(level<levelMin){
+				color='silver';
+			}
+			
+			for (elA = 1; elA <= elCount - level * 3; elA++) {
+				elM = elA + level;
+				elN = elM + level;
+				elB = elN + level;
+				htmlCode+="<rect id=\"el"+elA+"-"+elM+"-"+elN+"-"+elB+"\" x=\""+(level*24+16*elA)+"\" y=\""+16*level+"\" rx=\"2\" ry=\"2\" width=\"10\" height=\"10\" fill=\"white\" style=\"stroke:"+color+";stroke-width:1\" />"
+			}
+		}
+		htmlCode+="</svg> dfg"
+		 $("#drawDiv").html(htmlCode);
+	} 
+	
+   </script>
+ </head><body>
+ 
+  <a href="/mes" target="_blank">Messungen</a> 
+<table>
+<tr><td>
+<table border="1" style="border:1px solid black;border-collapse:collapse;">
+<tr><th colspan = "3">Einzelmessung</th></tr>
+<tr><td>Elektroden</td><td>Parameter</td><td>Ergebnis</td></tr>
+<tr><td>
+	<table >
+	<tr><td>A</td><td><input type="text" id="elA" size="2"></td></tr>
+	<tr><td>M</td><td><input type="text" id="elM" size="2"></td></tr>
+	<tr><td>N</td><td><input type="text" id="elN" size="2"></td></tr>
+	<tr><td>B</td><td><input type="text" id="elB" size="2"></td></tr>
+	</table>
+</td><td>
+	<table >
+	<tr><td>Strom</td></tr>
+	<tr><td> <select id="current">
+
+		<option>0.001 mA</option>
+		<option>0.01 mA</option>
+		<option selected="selected">0.1 mA</option>
+		<option>1.0 mA</option>
+		<option>10.0 mA</option>
+		<option>50.0 mA</option>
+		<option>100.0 mA</option>
+		<option>200.0 mA</option>
+	</select> 
+	</td></tr>
+
+	<tr><td>Frequenz</td></tr>
+	<tr><td> <select id="freq">
+		<option selected="selected">1.042 Hz</option>
+		<option>2.083 Hz</option>
+		<option>4.167 Hz</option>
+		<option>8.333 Hz</option>
+		<option>12.50 Hz</option>
+		<option>25.00 Hz</option>
+	</select> 
+	</td></tr>
+	</table>
+</td><td>
+	<table >
+	<tr><td>Spannung</td>
+	<td><div style="width:90px;height:25px;border:1px solid black;" id="einzSpan"></div></td><td>mV</td></tr>
+	<tr><td>Standardabw</td>
+	<td><div style="width:90px;height:25px;border:1px solid black;" id="einzSd"></div></td><td>%</td></tr>
+	</table>
+</td></tr>
+<tr><td colspan = "3">
+	<center><button onclick="singleMesure()">Messen</button></center>
+</td></tr>
+</table>
+
+</td>
+<td>
+<table border="1" style="border:1px solid black;border-collapse:collapse;">
+<tr><th colspan = "2">Wenner Konfiguration</th></tr>
+	<tr><td colspan = "2">File
+	<input type="text" id="file" size="16"></td></tr>
+	<tr><td>Spacing</td><td><input type="text" id="dist" size="2"></td></tr>
+	<tr><td>Anzahl Elektroden</td><td><input type="text" id="elCount" size="2"></td></tr>
+	<tr><td>Min. Level</td><td><input type="text" id="minLevel" size="2"></td></tr>
+	<tr><td>Max. Level</td><td><input type="text" id="maxLevel" size="2"></td></tr>
+	<tr><td colspan = "2">
+		<button onclick="drawWenner()">Draw Wenner</button>
+		<button onclick="wennerMesure()">Start Mesure</button>
+	</td></tr>
+</table>
+
+</td>
+</tr>
+</table>
+
+<center>This text will be center-aligned.</center> 
+
+<button onclick="cmdWithoutParam('mesureVoltage')">mesureVoltage</button>
+<div id="volt"></div> <br>
+
+<button onclick="cmdWithoutParam('Abort')">Abort</button>
+<button onclick="cmdWithoutParam('getMesures')">Reload data</button>
+<button onclick="saveWenner()">Save</button>
+
+<h2>Geotom Messages</h2>
+
+<div id="drawDiv"></div>
+<div id="msgDiv">Mo message</div>
+</body></html>
+

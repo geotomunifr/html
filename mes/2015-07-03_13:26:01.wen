@@ -1,0 +1,20 @@
+//No_config.ini
+//- Kabelrichtung:
+//  Kabel I: normal
+//  Kabel II: normal
+//  Kabel III: normal
+//  Kabel IV: normal
+//- Kabelanordnung: sequentiell
+//- Optimierung: letzte Messung
+//- Sortierung: nach Level
+//- Stromstufen: 0.010 mA .. 10.000 mA
+SCV2012-08-02_W
+ 2.00000
+ 1
+   4
+0
+0
+    0.000     2.000   6836.93  ;   0.100    53.8507   0.9   3.07.2015  11:25:26
+    2.000     2.000   2189.34  ;   1.000  -221.2235  -0.0   3.07.2015  11:25:41
+    4.000     2.000   2846.34  ;   0.010    -2.1862   0.2   3.07.2015  11:25:54
+    6.000     2.000  48209.99  ;   0.010    38.5578   0.4   3.07.2015  11:26:00

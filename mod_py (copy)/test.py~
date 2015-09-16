@@ -1,0 +1,31 @@
+from mod_python import apache
+
+def index(req):
+
+    req.content_type = "text/plain"
+    req.write("Hello World!")
+
+    return apache.OK
+
+def say(req, what="NOTHING"):
+   return "I am saying %s" % what
+
+def simpleForm(req,fristname=""):
+	req.content_type = 'text/html'
+	req.write("""
+	<!DOCTYPE html>
+	<html>
+	<body>
+	<form>
+	First name:<br>
+	<input type="text" name="firstname" value="%s">
+	<br>
+	Last name:<br>
+	<input type="text" name="lastname" value="Mouse">
+	<br><br>
+	<input type="submit" value="Submit">
+	</form> 
+	</body>
+	</html>
+	"""%firstname)
+	
